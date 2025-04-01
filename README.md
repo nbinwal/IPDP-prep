@@ -1,4 +1,4 @@
-Below is the complete text with questions and corresponding pseudocode answers. You can use this text to generate your PDF.
+Below is a revised version of the answers. Each section includes the complete question details along with a brief theoretical explanation for theory parts and concise pseudocode outlines for parts that require code-like solutions.
 
 ────────────────────────────
 **Question 1: Approaches to Writing Parallel Programs and MIMD Systems**
@@ -6,45 +6,33 @@ Below is the complete text with questions and corresponding pseudocode answers. 
 *Question:*  
 In modern computing, performance improvements rely heavily on parallel programming techniques. Describe different approaches to writing parallel programs, providing examples of each. Additionally, explain how parallel systems are classified and differentiate them from concurrent and distributed systems. How do the principal types of MIMD systems contribute to efficient parallel computing?
 
-*Answer (Pseudocode):*
+*Answer (Theoretical):*  
+Parallel programming can be achieved using several approaches:  
+- **Thread-Based (Shared Memory):** Multiple threads operate concurrently within a single address space (e.g., using OpenMP or Pthreads).  
+- **Message Passing (Distributed Memory):** Independent processes communicate by sending messages (e.g., MPI).  
+- **Data Parallelism:** The same operation is applied concurrently across elements (e.g., vectorized operations or GPU programming).  
+- **Task Parallelism:** Different tasks run concurrently.  
+
+Parallel systems are classified as shared memory, distributed memory, or hybrid systems. In MIMD systems, each processor can execute different instructions on different data, which allows scalable and efficient parallel computing.
+
+*Pseudocode Outline:*
 
 ```
-// ----- Thread-Based Parallelism (Shared Memory) -----
+// Thread-Based Parallelism Example (Shared Memory)
 function threadParallelExample():
-    // Create a pool of threads
     for each thread in THREAD_POOL:
-         // Each thread runs concurrently
          parallel_execute:
               print("Hello from thread", thread.id)
 
-// ----- Message Passing (Distributed Memory) -----
+// Message Passing Example (Distributed Memory)
 function mpiExample():
     MPI_Init()
     rank = MPI_Comm_rank()
     if rank == 0:
          print("Hello from process", rank)
     else:
-         // Other processes perform their tasks
          performLocalWork()
     MPI_Finalize()
-
-// ----- Data Parallelism -----
-function dataParallelAdd(a, b, c, n):
-    parallel for i from 0 to n-1:
-         c[i] = a[i] + b[i]
-
-// ----- Task Parallelism -----
-function taskParallel():
-    // Execute independent tasks concurrently
-    parallel_execute:
-         execute(task1)
-         execute(task2)
-         execute(task3)
-
-// ----- MIMD System Classification -----
-// Shared-memory MIMD uses threads (e.g., OpenMP, Pthreads)
-// Distributed-memory MIMD uses MPI for message passing
-// Hybrid systems combine both models
 ```
 
 ────────────────────────────
@@ -53,20 +41,19 @@ function taskParallel():
 *Question:*  
 Explain the Von Neumann architecture and its significance in modern computing. How does it relate to parallel and distributed systems? Additionally, compare shared memory and distributed memory MIMD systems.
 
-*Answer (Pseudocode):*
+*Answer:*  
+The Von Neumann architecture is based on the stored-program concept where both instructions and data share a common memory. Its simplicity led to early computer designs but also introduces a bottleneck (the "Von Neumann bottleneck") due to a single data path. Modern processors overcome these limitations by incorporating multiple cores and parallelism. In shared memory MIMD systems, multiple cores access common memory, while in distributed memory systems, each processor has its own memory and communicates via message passing.
+
+*Essential Outline (Pseudocode):*
 
 ```
-// ----- Von Neumann Execution Cycle -----
+// Von Neumann Execution Cycle
 function vonNeumannCycle():
     load_program_and_data_from_memory()
     while not end_of_program:
          instruction = fetch_from_memory()
          decoded = decode(instruction)
          execute(decoded)
-
-// Note:
-// Shared Memory MIMD: multiple processors access a common memory.
-// Distributed Memory MIMD: each processor has its own memory and communicates via message passing.
 ```
 
 ────────────────────────────
@@ -75,15 +62,17 @@ function vonNeumannCycle():
 *Question:*  
 A cloud-based AI training platform is designed to process large-scale machine learning workloads by distributing computations across multiple independent servers, each with its own private memory. The system must efficiently exchange model parameters between nodes while minimizing communication overhead. In this scenario, which type of MIMD system would be ideal, and how does it handle data exchange between processors?
 
-*Answer (Pseudocode):*
+*Answer (Theoretical):*  
+A distributed memory MIMD system is ideal. Each server computes local model updates, and efficient data exchange is handled using message-passing protocols (such as MPI_Allreduce) to aggregate and synchronize model parameters across nodes.
+
+*Pseudocode Outline:*
 
 ```
-// Distributed Memory MIMD is ideal.
+// Distributed AI Training using MPI
 function distributedAITraining():
     MPI_Init()
     local_data = getLocalData()
     local_update = computeLocalModelUpdate(local_data)
-    // Use MPI_Allreduce to sum (or average) model updates across nodes
     global_update = MPI_Allreduce(local_update, operation=SUM)
     updateModel(global_update)
     MPI_Finalize()
@@ -95,7 +84,10 @@ function distributedAITraining():
 *Question:*  
 You are tasked with developing a multi-threaded system using Pthreads to manage a dynamic task queue. The program should start with a user-specified number of worker threads that initially sleep in a condition wait. The main thread generates blocks of tasks and wakes a worker thread with a condition signal. After completing its tasks, the worker returns to waiting. Once all tasks are generated, the main thread signals completion and uses a condition broadcast to wake all threads for termination. Implement the system with proper synchronization.
 
-*Answer (Pseudocode):*
+*Answer (Theoretical):*  
+A dynamic task queue can be implemented using a mutex to protect shared access and a condition variable to signal worker threads when tasks become available. A global flag indicates when no more tasks will be generated so workers can exit cleanly.
+
+*Pseudocode Outline:*
 
 ```
 // Global shared variables
@@ -104,43 +96,25 @@ mutex = new Mutex()
 conditionVar = new ConditionVariable()
 tasksDone = false
 
-// Function to enqueue a task
 function enqueueTask(task):
     lock(mutex)
     taskQueue.enqueue(task)
-    signal(conditionVar)  // Wake one waiting worker
+    signal(conditionVar)
     unlock(mutex)
 
-// Worker thread function
 function workerThread(threadId):
     while true:
          lock(mutex)
-         while taskQueue.isEmpty() and (tasksDone == false):
+         while taskQueue.isEmpty() and not tasksDone:
               wait(conditionVar, mutex)
          if taskQueue.isEmpty() and tasksDone:
               unlock(mutex)
               break
          task = taskQueue.dequeue()
          unlock(mutex)
-         process(task)         // Process the task
-         sleep(1)              // Simulate work
+         process(task)
+         sleep(1)
     print("Thread", threadId, "exiting")
-
-// Main thread
-function main():
-    // Create worker threads
-    for i from 1 to numWorkers:
-         start workerThread(i)
-    // Generate tasks in blocks
-    for each block in taskBlocks:
-         for each task in block:
-              enqueueTask(task)
-         sleep(2)   // Simulate delay between blocks
-    lock(mutex)
-    tasksDone = true
-    broadcast(conditionVar)  // Wake all waiting workers to exit
-    unlock(mutex)
-    wait for all worker threads to finish
 ```
 
 ────────────────────────────
@@ -149,19 +123,19 @@ function main():
 *Question:*  
 Imagine you are implementing a parallel matrix-vector multiplication algorithm for a large dataset. Initially, the matrix dimensions are perfectly divisible by the number of available threads. However, if the dimensions do not divide evenly, describe an approach to handle such an imbalanced workload efficiently.
 
-*Answer (Pseudocode):*
+*Answer (Theoretical):*  
+Compute the base number of rows each thread should process using integer division, and then distribute the remaining extra rows among the first few threads. This ensures a balanced workload with minimal idle time.
+
+*Pseudocode Outline:*
 
 ```
 // m: total rows, t: total threads
 function assignRows(m, t):
-    rows_per_thread = m / t   // Integer division
+    base = m / t              // Integer division
     remainder = m mod t
     for i from 0 to t - 1:
-         start = i * rows_per_thread + min(i, remainder)
-         if i < remainder:
-             count = rows_per_thread + 1
-         else:
-             count = rows_per_thread
+         start = i * base + min(i, remainder)
+         count = base + (if i < remainder then 1 else 0)
          end = start + count - 1
          assignTaskToThread(i, start, end)
 ```
@@ -170,30 +144,24 @@ function assignRows(m, t):
 **Question 6: OpenMP Histogram Program**
 
 *Question:*  
-Develop an OpenMP program to implement a histogram where the master thread receives sensor data in the range 0-99, and slave threads (each representing a bucket) count the data falling within their range. The master thread displays bucket counts periodically.
+Develop an OpenMP program to implement a histogram where the master thread receives sensor data in the range 0–99, and slave threads (each representing a bucket) count the data falling within their range. The master thread displays bucket counts periodically.
 
-*Answer (Pseudocode):*
+*Answer (Theoretical):*  
+The master thread generates sensor data and updates a shared array, while each worker thread (bucket) uses atomic operations to update its count for its specific data range. Periodic printing shows the current state of the histogram.
+
+*Pseudocode Outline:*
 
 ```
-// Global variables
-NUM_BUCKETS = 10
-sensorData[TOTAL_DATA]
-bucketCounts[NUM_BUCKETS] = {0}
-dataIndex = 0  // Shared counter
-
-// Set total threads = NUM_BUCKETS + 1 (1 master + NUM_BUCKETS workers)
-parallel region shared(sensorData, bucketCounts, dataIndex):
+// Global: sensorData, bucketCounts[NUM_BUCKETS], dataIndex
+parallel region with NUM_BUCKETS+1 threads:
     threadId = omp_get_thread_num()
-    if threadId == 0:
-         // Master thread: generate sensor data
-         for i from 0 to TOTAL_DATA - 1:
+    if threadId == 0: // Master
+         for i from 0 to TOTAL_DATA-1:
               sensorData[i] = randomInteger(0, 99)
               dataIndex++
-              if (i mod 100 == 0):
-                  print(bucketCounts)
+              if (i mod 100 == 0): print(bucketCounts)
               sleep(delay)
-    else:
-         // Worker threads: each corresponds to one bucket
+    else: // Worker for bucket (threadId-1)
          bucket = threadId - 1
          lowerBound = bucket * (100 / NUM_BUCKETS)
          upperBound = lowerBound + (100 / NUM_BUCKETS)
@@ -201,14 +169,11 @@ parallel region shared(sensorData, bucketCounts, dataIndex):
          while true:
               localIndex = dataIndex
               while myIndex < localIndex:
-                    if sensorData[myIndex] >= lowerBound and sensorData[myIndex] < upperBound:
+                    if sensorData[myIndex] in [lowerBound, upperBound):
                          atomic_increment(bucketCounts[bucket])
                     myIndex++
-              if localIndex >= TOTAL_DATA:
-                    break
+              if localIndex >= TOTAL_DATA: break
               sleep(shortDelay)
-After parallel region:
-print("Final bucket counts:", bucketCounts)
 ```
 
 ────────────────────────────
@@ -217,7 +182,10 @@ print("Final bucket counts:", bucketCounts)
 *Question:*  
 You are running a large e-commerce operation where each warehouse computes the minimum and maximum shipping times. Using MPI, write a program flow to collect these local min/max values and compute the global minimum and maximum shipping times.
 
-*Answer (Pseudocode):*
+*Answer (Theoretical):*  
+Each process computes local shipping time extremes. Then, MPI_Reduce is used with the MPI_MIN operator for the global minimum and MPI_MAX for the global maximum, aggregating the data at the root process.
+
+*Pseudocode Outline:*
 
 ```
 // In each process:
@@ -227,9 +195,8 @@ function aggregateShippingTimes():
     localMax = computeLocalMaxShippingTime()
     globalMin = MPI_Reduce(localMin, operation=MIN, root=0)
     globalMax = MPI_Reduce(localMax, operation=MAX, root=0)
-    if (rank == 0):
-         print("Global Minimum Shipping Time:", globalMin)
-         print("Global Maximum Shipping Time:", globalMax)
+    if rank == 0:
+         print("Global Min:", globalMin, "Global Max:", globalMax)
     MPI_Finalize()
 ```
 
@@ -239,33 +206,30 @@ function aggregateShippingTimes():
 *Question:*  
 You implement a ping-pong communication pattern between two processes to measure message passing cost. How long does the program need to run for clock() to report a nonzero runtime? How do timings from clock() compare to those from MPI_Wtime()?
 
-*Answer (Pseudocode):*
+*Answer (Theoretical):*  
+The clock() function measures CPU time and will report a nonzero value after roughly 1/CLOCKS_PER_SEC seconds (usually about 1 microsecond). MPI_Wtime() measures elapsed wall-clock time, which includes waiting periods and provides a more accurate measure for communication tests.
+
+*Pseudocode Outline:*
 
 ```
-// In process 0:
+// Process 0:
 function pingPongTest():
     MPI_Init()
     if rank == 0:
          startWall = MPI_Wtime()
          startCPU = clock()
-         for count from 0 to PING_PONG_LIMIT - 1:
+         for count from 0 to LIMIT-1:
               MPI_Send(message, destination=1)
               MPI_Recv(message, source=1)
          endCPU = clock()
          endWall = MPI_Wtime()
-         cpuTime = (endCPU - startCPU) / CLOCKS_PER_SEC  // CPU time
-         wallTime = endWall - startWall                    // Wall-clock time
-         print("CPU time (clock):", cpuTime)
-         print("Wall-clock time (MPI_Wtime):", wallTime)
-    else if rank == 1:
-         for count from 0 to PING_PONG_LIMIT - 1:
+         print("CPU time:", (endCPU - startCPU) / CLOCKS_PER_SEC)
+         print("Wall time:", endWall - startWall)
+    else:
+         for count from 0 to LIMIT-1:
               MPI_Recv(message, source=0)
               MPI_Send(message, destination=0)
     MPI_Finalize()
-
-// Note:
-// clock() reports a nonzero value after approximately 1/CLOCKS_PER_SEC seconds (typically about 1 microsecond).
-// clock() measures CPU time while MPI_Wtime() measures the full elapsed (wall-clock) time.
 ```
 
 ────────────────────────────
@@ -274,44 +238,28 @@ function pingPongTest():
 *Question:*  
 Imagine a large vector is distributed among processes. Write pseudocode to measure the time cost for redistributing the vector between block and cyclic distributions. Also, discuss factors influencing the redistribution time.
 
-*Answer (Pseudocode):*
+*Answer (Theoretical):*  
+Measure redistribution time by capturing the wall-clock time before and after the redistribution. The time cost is influenced by the vector size, the number of processes, network latency, bandwidth, and overhead in message handling.
+
+*Pseudocode Outline:*
 
 ```
-// Assume global vector V of size N distributed among P processes
+// For each redistribution:
 function measureRedistributionCost():
-    // --- Block-to-Cyclic Redistribution ---
     startTime = MPI_Wtime()
     for each local element with global index i in block:
          targetProcess = i mod P
-         if (targetProcess != myRank):
+         if targetProcess != myRank:
               MPI_Send(element, targetProcess)
          else:
               cyclicBuffer.add(element)
-    while (not all expected elements received):
+    while not all expected elements received:
          element = MPI_Recv(anySource)
          cyclicBuffer.add(element)
     blockToCyclicTime = MPI_Wtime() - startTime
-    print("Block-to-Cyclic Redistribution Time:", blockToCyclicTime)
-
-    // --- Cyclic-to-Block Redistribution ---
-    startTime = MPI_Wtime()
-    for each element in cyclicBuffer with global index i:
-         targetProcess = floor(i / (N / P))
-         if (targetProcess != myRank):
-              MPI_Send(element, targetProcess)
-         else:
-              blockBuffer.add(element)
-    while (not all expected elements received):
-         element = MPI_Recv(anySource)
-         blockBuffer.add(element)
-    cyclicToBlockTime = MPI_Wtime() - startTime
-    print("Cyclic-to-Block Redistribution Time:", cyclicToBlockTime)
+    print("Block-to-Cyclic Time:", blockToCyclicTime)
     
-// Factors influencing time:
-// - Size of vector (N)
-// - Number of processes (P)
-// - Message latency and network bandwidth
-// - Communication overhead and efficiency of MPI routines
+    // Similarly, for cyclic-to-block redistribution.
 ```
 
 ────────────────────────────
@@ -320,7 +268,10 @@ function measureRedistributionCost():
 *Question:*  
 Design a thread-safe tokenizer that extracts tokens from a string without modifying the original input. Provide pseudocode and outline your implementation considerations.
 
-*Answer (Pseudocode):*
+*Answer (Theoretical):*  
+The tokenizer should maintain its own state (using a pointer) and return newly allocated tokens so that the original string remains unchanged. Each thread uses its own state variable to ensure thread safety. Memory management is crucial, as each token must be freed after use.
+
+*Pseudocode Outline:*
 
 ```
 // Thread-safe tokenizer function
@@ -330,32 +281,27 @@ function threadSafeTokenizer(input, delimiters, savePtr):
     if savePtr is NULL or at end of string:
          return NULL
     start = savePtr
-    pos = findFirstOccurrence(savePtr, delimiters)  // Similar to strpbrk
+    pos = findFirstOccurrence(savePtr, delimiters)
     if pos is NULL:
          token = duplicateString(start)
          savePtr = NULL
     else:
          tokenLength = pos - start
          token = allocateMemory(tokenLength + 1)
-         copy substring of length tokenLength from start into token
+         copy substring into token
          token[tokenLength] = '\0'
          savePtr = pos + 1
     return token
 
-// Usage in a thread-safe context:
+// Usage:
 function processString(input, delimiters):
     savePtr = NULL
     token = threadSafeTokenizer(input, delimiters, savePtr)
     while token is not NULL:
-         process(token)  // e.g., print or analyze token
+         process(token)
          free(token)
          token = threadSafeTokenizer(NULL, delimiters, savePtr)
 ```
-
-*Implementation Considerations:*  
-- **Thread Safety:** No shared mutable state is used; each thread maintains its own `savePtr`.  
-- **Immutability:** The original input string is preserved.  
-- **Memory Management:** New memory is allocated for each token, so the caller must free it.
 
 ────────────────────────────
 **Question 11: MPI Block-Column Distribution for Matrix-Vector Multiplication**
@@ -363,20 +309,20 @@ function processString(input, delimiters):
 *Question:*  
 Describe how you would implement block-column distribution and matrix-vector multiplication in MPI. Include steps for initializing MPI, distributing data, performing local multiplication, reducing results, and finalizing.
 
-*Answer (Pseudocode):*
+*Answer (Theoretical):*  
+Process 0 reads the entire matrix and vector, partitions the matrix into block columns, and sends each block to the appropriate process. Each process multiplies its submatrix by the corresponding portion of the vector. Finally, MPI_Reduce is used to sum the partial results to form the final output vector.
+
+*Pseudocode Outline:*
 
 ```
 // Main pseudocode
 function distributedMatrixVectorMultiply():
     MPI_Init()
-    rank = MPI_Comm_rank()
-    size = MPI_Comm_size()
-    if (rank == 0):
-         n = readMatrixOrder()         // Order of the matrix
-         A = readFullMatrix()            // n x n matrix
-         x = readVector()                // Vector of size n
-         // For each process, compute localCols and offset based on block-column distribution
-         for i from 0 to size - 1:
+    if rank == 0:
+         n = readMatrixOrder()
+         A = readFullMatrix()      // n x n matrix
+         x = readVector()          // Vector of size n
+         for each process i:
               localCols = computeLocalColumns(n, i, size)
               if i == 0:
                    localA = extractBlockColumns(A, start=0, count=localCols)
@@ -385,18 +331,12 @@ function distributedMatrixVectorMultiply():
                    MPI_Send(temp, destination=i)
          MPI_Bcast(x, root=0)
     else:
-         localCols = computeLocalColumns(n, rank, size)
-         localA = allocateMatrix(n, localCols)
-         MPI_Recv(localA, source=0)
+         localA = MPI_Recv(from=0)
          MPI_Bcast(x, root=0)
-    // Each process extracts its corresponding subvector for its block columns
-    offset = computeOffset(rank, n, size)
     x_local = extractSubVector(x, offset, localCols)
-    // Local matrix-vector multiplication: y_local = localA * x_local
     y_local = localMatrixVectorMultiply(localA, x_local)
-    // Global reduction to sum partial results
     global_y = MPI_Reduce(y_local, operation=SUM, root=0)
-    if (rank == 0):
+    if rank == 0:
          print("Resulting vector y:", global_y)
     MPI_Finalize()
 ```
@@ -407,24 +347,23 @@ function distributedMatrixVectorMultiply():
 *Question:*  
 A community group with 10 volunteers collects donations from 10 city regions. Each volunteer collects a random donation amount. Design an OpenMP program that simulates this process and aggregates the total donation.
 
-*Answer (Pseudocode):*
+*Answer (Theoretical):*  
+Each volunteer is simulated by a thread that collects a random donation amount. The individual donations are stored in an array and then summed to compute the total funds raised.
+
+*Pseudocode Outline:*
 
 ```
-// Global array to store donations
-NUM_VOLUNTEERS = 10
-donations[NUM_VOLUNTEERS] = {0}
+// Global array for donations
+donations[10] = {0}
 
-// Set the number of threads equal to NUM_VOLUNTEERS
-parallel region:
+parallel region with 10 threads:
     threadId = omp_get_thread_num()
     seed = currentTime() + threadId
-    donation = generateRandomDonation(seed)  // e.g., random value between 0 and 1000.99
+    donation = generateRandomDonation(seed)  // e.g., value between $0.00 and $1000.99
     donations[threadId] = donation
     print("Volunteer", threadId, "collected:", donation)
-// After parallel region, aggregate the total donation
-total = 0
-for i from 0 to NUM_VOLUNTEERS - 1:
-    total += donations[i]
+
+total = sum(donations)
 print("Total funds raised:", total)
 ```
 
@@ -434,7 +373,10 @@ print("Total funds raised:", total)
 *Question:*  
 Dr. Estelle collects temperature data processed by regional teams. Each team computes local minimum and maximum temperatures. Using MPI, how do you aggregate these into global minimum and maximum values?
 
-*Answer (Pseudocode):*
+*Answer (Theoretical):*  
+Each process computes its local temperature extremes. MPI_Reduce is then used with the MPI_MIN operator to compute the global minimum and with MPI_MAX to compute the global maximum. The root process collects and displays the results.
+
+*Pseudocode Outline:*
 
 ```
 // In each process:
@@ -443,7 +385,7 @@ function aggregateTemperatureExtremes():
     localMax = computeLocalMaxTemperature()
     globalMin = MPI_Reduce(localMin, operation=MIN, root=0)
     globalMax = MPI_Reduce(localMax, operation=MAX, root=0)
-    if (rank == 0):
+    if rank == 0:
          print("Global Temperature Range: Min =", globalMin, "Max =", globalMax)
     MPI_Finalize()
 ```
@@ -454,7 +396,10 @@ function aggregateTemperatureExtremes():
 *Question:*  
 QuickBuy, an online shopping platform, allows only 10 customers to buy a discounted product. Using multithreading with Pthreads, simulate a scenario where more than 10 customer threads attempt to purchase the product, but only 10 succeed. Compare busy waiting versus mutex synchronization.
 
-*Answer (Pseudocode):*
+*Answer (Theoretical):*  
+In a busy-wait version, threads repeatedly check a shared counter without synchronization, which may lead to race conditions. With mutex synchronization, a mutex ensures that only one thread decrements the counter at a time, guaranteeing that exactly 10 customers succeed.
+
+*Pseudocode Outline:*
 
 ```
 // Version A: Busy Waiting (No Mutex)
@@ -462,17 +407,13 @@ Global available = 10
 function customerThread_Busy():
     id = threadID
     while true:
-         // No locking: check available offers
          if available > 0:
-              // Race condition may occur without synchronization
-              available = available - 1
+              available = available - 1  // May cause race conditions
               print("Customer", id, "succeeded!")
               break
-         // Busy-wait: continuously check the shared variable
 
 // Version B: Using Mutex Synchronization
-Global available = 10
-mutex = new Mutex()
+Global available = 10, mutex = new Mutex()
 function customerThread_Mutex():
     id = threadID
     lock(mutex)
@@ -483,16 +424,12 @@ function customerThread_Mutex():
          print("Customer", id, "failed to buy.")
     unlock(mutex)
 
-// Main function for both versions:
+// Main:
 function main():
     for id from 1 to 20:
-         createThread(customerThread)  // Choose Busy or Mutex version
+         createThread(customerThread)  // Choose either the busy or mutex version
     wait for all threads to finish
 ```
 
-*Explanation:*  
-- **Busy Waiting:** Threads continuously check a shared variable without synchronization, which may lead to race conditions and allow more than 10 successes.  
-- **Mutex Synchronization:** A mutex ensures that only one thread at a time checks and updates the available count, ensuring exactly 10 customers succeed.
-
 ────────────────────────────
-This complete text includes all questions and pseudocode answers. You can now generate your PDF using your own tool or script.
+This complete text includes the full details of each question along with brief theoretical explanations and concise pseudocode outlines where needed. You can now use this text to generate your PDF or for further study.
